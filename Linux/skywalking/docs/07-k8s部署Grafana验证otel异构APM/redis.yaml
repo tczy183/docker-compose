@@ -1,0 +1,82 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis
+  namespace: otel-demo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: redis
+  template:
+    metadata:
+      labels:
+        app: redis
+    spec:
+      containers:
+        - name: redis
+          image: registry.cn-hangzhou.aliyuncs.com/zhengqing/redis:7.0.5
+          imagePullPolicy: IfNotPresent
+          command:
+            - redis-server
+          args:
+            - --slowlog-log-slower-than
+            - "10000"
+            - --slowlog-max-len
+            - "1024"
+          ports:
+            - name: redis
+              containerPort: 6379
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis
+  namespace: otel-demo
+spec:
+  selector:
+    app: redis
+  ports:
+    - name: redis
+      port: 6379
+      targetPort: 6379
+      protocol: TCP
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis-exporter
+  namespace: otel-demo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: redis-exporter
+  template:
+    metadata:
+      labels:
+        app: redis-exporter
+    spec:
+      containers:
+        - name: redis-exporter
+          image: registry.cn-hangzhou.aliyuncs.com/zhengqing/redis_exporter:v1.61.0
+          imagePullPolicy: IfNotPresent
+          args:
+            - --redis.addr=redis://redis:6379
+          ports:
+            - name: metrics
+              containerPort: 9121
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis-exporter
+  namespace: otel-demo
+spec:
+  selector:
+    app: redis-exporter
+  ports:
+    - name: metrics
+      port: 9121
+      targetPort: 9121
+      protocol: TCP

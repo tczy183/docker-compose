@@ -224,6 +224,8 @@ Grafana 已自动配置：
 - Loki：日志数据源
 - Tempo：链路数据源
 - `OTel/OTel 异构接口监控` Dashboard
+- `OTel/Redis 调用监控` Dashboard
+- `OTel/Redis 实例监控` Dashboard
 
 ## 五、部署异构 Demo
 
@@ -235,6 +237,7 @@ Grafana 已自动配置：
 kubectl apply -f namespace-otel-demo.yaml
 kubectl apply -f instrumentation-java.yaml
 kubectl apply -f instrumentation-python.yaml
+kubectl apply -f redis.yaml
 kubectl apply -f demo-k8s-otel-java.yaml
 kubectl apply -f demo-k8s-otel-python.yaml
 kubectl apply -f demo-k8s-otel-go.yaml
@@ -247,6 +250,7 @@ kubectl apply -f demo-k8s-otel-php.yaml
 kubectl get instrumentation -n otel-demo
 kubectl get pods -n otel-demo -o wide
 kubectl get svc -n otel-demo
+kubectl get deployment/redis-exporter -n otel-demo
 ```
 
 确认 Java、Python 已被 Operator 注入：
@@ -296,6 +300,7 @@ curl "http://127.0.0.1:30082/hello?name=java"
 curl "http://127.0.0.1:30083/hello?name=python"
 curl "http://127.0.0.1:30084/hello?name=go"
 curl "http://127.0.0.1:30085/hello?name=php"
+curl "http://127.0.0.1:30082/redis?key=otel:redis:test&value=hello"
 ```
 
 ### 2、双服务链路
@@ -324,7 +329,25 @@ done
 curl "http://127.0.0.1:30082/slow?sleepMs=3000"
 ```
 
-### 5、生成接口统计数据
+### 5、验证 Redis 耗时采集
+
+```shell
+curl -s "http://127.0.0.1:30082/redis?key=otel:redis:test&value=hello"
+```
+
+复制响应中的 `trace_id`，进入 Grafana Explore 选择 Tempo，通过 Trace ID 查询链路明细。正常情况下，同一条 Trace 中会出现 Java HTTP Server Span，以及 Redis `SET`、`GET` Client Span。
+
+Redis 调用属于 `SPAN_KIND_CLIENT`。进入 `Dashboards -> OTel -> Redis 调用监控`，确认可以看到 Redis QPS、错误率、平均耗时、P95、P99、慢服务和调用明细。
+
+进入 `Dashboards -> OTel -> Redis 实例监控`，确认可以看到 Redis Up、服务端 QPS、内存、连接数、命中率、命令 QPS、命令平均耗时、命令 P95 和 slowlog 概览。
+
+查看 Redis 服务端完整慢命令参数：
+
+```shell
+kubectl exec -n otel-demo deployment/redis -- redis-cli SLOWLOG GET 20
+```
+
+### 6、生成接口统计数据
 
 ```shell
 for i in {1..30}; do

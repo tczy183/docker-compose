@@ -17,6 +17,15 @@ tempo:
           max_items: 10000
         span_metrics:
           enable_target_info: true
+          dimensions:
+            - service.name
+            - span.name
+            - span.kind
+            - db.system
+            - db.operation
+            - db.operation.name
+            - server.address
+            - server.port
       storage:
         path: /var/tempo/metrics
       traces_storage:
@@ -151,6 +160,11 @@ prometheus:
       static_configs:
         - targets:
             - otel-collector:8889
+    - job_name: redis-exporter
+      scrape_interval: 10s
+      static_configs:
+        - targets:
+            - redis-exporter.otel-demo.svc.cluster.local:9121
   alertmanager:
     enabled: false
   kube-state-metrics:
@@ -358,8 +372,17 @@ grafana:
           editable: true
           options:
             path: /var/lib/grafana/dashboards/default
+        - name: redis
+          orgId: 1
+          folder: OTel
+          type: file
+          disableDeletion: false
+          editable: true
+          options:
+            path: /var/lib/grafana/dashboards/redis
   dashboardsConfigMaps:
     default: grafana-otel-dashboard
+    redis: grafana-redis-dashboard
   grafana.ini:
     analytics:
       check_for_updates: false
