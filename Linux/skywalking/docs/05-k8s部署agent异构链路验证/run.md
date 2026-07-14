@@ -1,5 +1,7 @@
 # K8s 部署 SkyWalking 原生 Agent 异构链路验证
 
+> 前置准备：OAP部署见 [10.4.0-banyandb-lite-otel-k8s-monitoring](../../10.4.0-banyandb-lite-otel-k8s-monitoring)
+
 ### 一、验证目标
 
 本目录用于验证 SkyWalking 原生 Agent 接入，不使用 OTel Collector，也不使用 `OTEL_*` 配置。
