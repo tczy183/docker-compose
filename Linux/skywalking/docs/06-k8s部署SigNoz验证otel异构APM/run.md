@@ -391,3 +391,12 @@ kubectl delete -f signoz-ui.yaml --ignore-not-found
 helm uninstall signoz -n signoz --ignore-not-found
 kubectl delete namespace signoz
 ```
+
+### 4、namespace 删除卡住
+
+通常是 ClickHouse finalizer 残留。确认不需要保留数据后执行：
+
+```shell
+kubectl patch clickhouseinstallation.clickhouse.altinity.com signoz-clickhouse -n signoz --type=merge -p '{"metadata":{"finalizers":[]}}'
+kubectl wait --for=delete namespace/signoz --timeout=120s
+```
